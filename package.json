@@ -1,8 +1,8 @@
 {
-  "name": "aws-fetch",
+  "name": "awsFetch",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/awsFetch.js",
   "scripts": {
     "test": "jest",
     "build": "rollup --config",
@@ -13,10 +13,13 @@
   "license": "ISC",
   "devDependencies": {
     "babel-preset-latest": "^6.24.1",
+    "crypto-js": "^3.1.9-1",
     "jest": "^20.0.4",
     "node-fetch": "^1.7.1",
     "rollup": "^0.43.0",
     "rollup-plugin-babel": "^2.7.1",
+    "rollup-plugin-commonjs": "^8.0.2",
+    "rollup-plugin-node-resolve": "^3.0.0",
     "rollup-watch": "^4.0.0"
   }
 }

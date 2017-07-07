@@ -1,14 +1,27 @@
 import babel from 'rollup-plugin-babel';
+import commonjs from 'rollup-plugin-commonjs';
+import resolve from 'rollup-plugin-node-resolve';
 
 export default {
   entry: 'src/main.js',
-  moduleName: 'aws-fetch',
+  moduleName: 'awsFetch',
   format: 'umd',
-  dest: 'dist/aws-fetch.js',
+  dest: 'dist/awsFetch.js',
   sourceMap: true,
   plugins: [
     babel({
-      exclude: 'node_modules/**'
-    })
-  ]
+      exclude: 'node_modules/**',
+    }),
+    commonjs({
+      namedExports: {
+        'node_modules/crypto-js/sha256.js': [ 'SHA256' ],
+        'node_modules/crypto-js/hmac-sha256.js': [ 'HmacSHA256' ]
+      }
+    }),
+    resolve()
+  ],
+  external: ['node-fetch'],
+  globals: {
+    'node-fetch': 'fetch'
+  }
 };
