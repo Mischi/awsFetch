@@ -11,6 +11,14 @@ export default {
   plugins: [
     babel({
       exclude: 'node_modules/**',
+      babelrc: false,
+      presets: [
+        ["latest", {
+          es2015: {
+            modules: false
+          }
+        }]
+      ]
     }),
     commonjs({
       namedExports: {
