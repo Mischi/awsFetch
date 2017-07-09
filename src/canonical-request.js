@@ -1,17 +1,13 @@
-import URL from 'url-parse';
-import SHA256 from 'crypto-js/sha256';
-import Hex from 'crypto-js/enc-hex';
+import { hash, hexEncode } from './crypto';
 
-
-export function buildCanonicalRequest(req) {
-  const url = new URL(req.url, true);
+export function buildCanonicalRequest(req, url) {
   return req.text().then(body => {
     return req.method + '\n' +
       encodeURI(url.pathname) + '\n' +
       buildCanonicalQueryString(url.query) + '\n' +
       buildCanonicalHeaders(req.headers) + '\n\n' +
       buildCanonicalSignedHeaders(req.headers) + '\n' +
-      Hex.stringify(SHA256(body));
+      hexEncode(hash(body));
   });
 }
 
@@ -20,7 +16,7 @@ export function buildCanonicalQueryString(query) {
   queryParams.sort();
 
   return queryParams
-    .map(q => q + '=' + query[q])
+    .map(q => encodeURIComponent(q) + '=' + query[q])
     .join('&');
 }
 
@@ -29,7 +25,7 @@ export function buildCanonicalHeaders(headers) {
   sortedKeys.sort();
 
   return sortedKeys
-    .map(h => h + ':' + headers.get(h))
+    .map(h => h + ':' + trim(headers.get(h)))
     .join('\n');
 }
 
@@ -38,4 +34,14 @@ export function buildCanonicalSignedHeaders(headers) {
   sortedKeys.sort();
 
   return sortedKeys.join(';');
+}
+
+export function trim(str) {
+  return str.replace(/([^"]+)|("[^"]+")/g, function($0, $1, $2) {
+    if ($1) {
+        return $1.replace(/\s/g, '');
+    } else {
+      return $2.replace(/\s\s+/g, ' ');
+    }
+  });
 }
