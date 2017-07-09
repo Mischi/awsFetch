@@ -1,14 +1,16 @@
 import fetch, { Request } from 'node-fetch';
 import SHA256 from 'crypto-js/sha256';
 import HmacSHA256 from 'crypto-js/hmac-sha256';
+import { buildCanonicalRequest } from './canonical-request';
 
 export default function awsFetch(input, init) {
   const req = new Request(input, init);
 
   setAmzDateHeader(req);
 
-
-  return fetch(req);
+  return buildCanonicalRequest(req).then(cReq => {
+    return fetch(req);
+  });
 }
 
 

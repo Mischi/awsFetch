@@ -22,6 +22,7 @@ export default {
     }),
     commonjs({
       namedExports: {
+        'node_modules/crypto-js/enc-hex.js': [ 'Hex' ],
         'node_modules/crypto-js/sha256.js': [ 'SHA256' ],
         'node_modules/crypto-js/hmac-sha256.js': [ 'HmacSHA256' ]
       }
