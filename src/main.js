@@ -2,7 +2,7 @@ import fetch, { Request } from 'node-fetch';
 import URL from 'url-parse';
 import { signRequestV4 } from './sigv4';
 
-export default function awsFetch(input, init, aws) {
+export default async function awsFetch(input, init, aws) {
   const req = new Request(input, init);
   const url = new URL(req.url, true);
 
@@ -10,11 +10,9 @@ export default function awsFetch(input, init, aws) {
   req.headers.set('X-Amz-Date', datetime);
   req.headers.set('Host', url.hostname);
 
-  return signRequestV4(req, url, datetime, aws).then(() => {
-    return fetch(req);
-  }).catch((error) => {
-    console.log(error)
-  });
+  await signRequestV4(req, url, datetime, aws);
+
+  return fetch(req);
 }
 
 

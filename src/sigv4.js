@@ -7,18 +7,17 @@ import {
 const AWS4_REQUEST = 'aws4_request';
 const AWS_SHA_256 = 'AWS4-HMAC-SHA256';
 
-export function signRequestV4(req, url, datetime, aws) {
-  return buildCanonicalRequest(req, url).then(canonicalRequest => {
-    const credentialScope = buildCredentialScope(datetime, aws);
-    const stringToSign = buildStringToSign(
-      datetime, credentialScope, canonicalRequest, aws
-    );
-    const signingKey = calculateSigningKey(datetime, aws);
-    const signature = hexEncode(hmac(signingKey, stringToSign));
-    req.headers.set('Authorization', buildAuthorizationHeader(
-      aws, credentialScope, req.headers, signature
-    ));
-  });
+export async function signRequestV4(req, url, datetime, aws) {
+  const canonicalRequest = await buildCanonicalRequest(req, url);
+  const credentialScope = buildCredentialScope(datetime, aws);
+  const stringToSign = buildStringToSign(
+    datetime, credentialScope, canonicalRequest, aws
+  );
+  const signingKey = calculateSigningKey(datetime, aws);
+  const signature = hexEncode(hmac(signingKey, stringToSign));
+  req.headers.set('Authorization', buildAuthorizationHeader(
+    aws, credentialScope, req.headers, signature
+  ));
 }
 
 export function buildStringToSign(datetime, credentialScope, canonicalRequest, aws) {

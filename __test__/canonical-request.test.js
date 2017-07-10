@@ -79,7 +79,11 @@ describe('buildCanonicalSignedHeaders', () => {
 });
 
 describe('trim', () => {
-  test('rm spaces', () => {
+  test('do not rm spaces after ;', () => {
+    expect(trim('a; b')).toEqual('a; b');
+  });
+
+  test('rm spaces after ,', () => {
     expect(trim(' a, b, c ')).toEqual('a,b,c');
   });
 

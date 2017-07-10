@@ -39,6 +39,15 @@ describe('aws-sig-v4-test-suite', () => {
   execTest('get-vanilla-utf8-query');
   execTest('get-vanilla');
   //execTest('normalize-path/get-relative-relative');
+  execTest('post-header-key-case');
+  execTest('post-header-key-sort');
+  execTest('post-header-value-case');
+  //execTest('post-sts-token');
+  execTest('post-vanilla-empty-query-value');
+  execTest('post-vanilla-query');
+  execTest('post-vanilla');
+  execTest('post-x-www-form-urlencoded-parameters');
+  execTest('post-x-www-form-urlencoded');
 });
 
 function execTest(testName) {
@@ -49,13 +58,14 @@ function execTest(testName) {
     );
   }
 
-  describe(testName, () => {
-    const requestData = loadTestFile('req').split('\n');
+  function parseRequest() {
+    const [headerData, body] = loadTestFile('req').split('\n\n');
+    const headerDataItems = headerData.split('\n');
 
-    const pathname = requestData.shift().split(' ')[1];
+    const [method, pathname] = headerDataItems.shift().split(' ');
 
     const headers = new Headers();
-    for (const header of requestData) {
+    for (const header of headerDataItems) {
       if (header == '\n')
         break;
 
@@ -64,20 +74,24 @@ function execTest(testName) {
     }
 
     const url = `https://${headers.get('Host')}${pathname}`;
-    const req = new Request(url, { headers });
+    const req = new Request(url, { method, headers, body });
 
+    return { req, url };
+  }
 
+  describe(testName, () => {
+    const { req, url } = parseRequest();
 
     const expectedCReq = loadTestFile('creq');
     const expectedSts =  loadTestFile('sts');
     const expectedAuthz = loadTestFile('authz');
 
-    test('creq', () => {
+    test('creq', async () => {
       // act
-      buildCanonicalRequest(req, new URL(url, true)).then(cReq => {
-        // assert
-        expect(cReq).toEqual(expectedCReq);
-      });
+      const cReq = await buildCanonicalRequest(req, new URL(url, true));
+
+      // assert
+      expect(cReq).toEqual(expectedCReq);
     });
 
     test('sts', () => {
