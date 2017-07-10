@@ -1,23 +1,30 @@
+import { normalize } from 'path';
+import { URLSearchParams } from 'whatwg-url';
 import { hash, hexEncode } from './crypto';
+
 
 export async function buildCanonicalRequest(req, url) {
   const body = await req.text();
 
   return req.method + '\n' +
-    encodeURI(url.pathname) + '\n' +
-    buildCanonicalQueryString(url.query) + '\n' +
+    normalize(url.pathname) + '\n' +
+    buildCanonicalQueryString(url.searchParams) + '\n' +
     buildCanonicalHeaders(req.headers) + '\n\n' +
     buildCanonicalSignedHeaders(req.headers) + '\n' +
     hexEncode(hash(body));
 }
 
-export function buildCanonicalQueryString(query) {
-  const queryParams = Object.keys(query);
-  queryParams.sort();
+export function buildCanonicalQueryString(searchParams) {
+  const sortedKeys = [...new Set(searchParams.keys())];
+  sortedKeys.sort();
 
-  return queryParams
-    .map(q => encodeURIComponent(q) + '=' + query[q])
-    .join('&');
+  return sortedKeys.map(k => {
+    const values = searchParams.getAll(k);
+    values.sort();
+
+    return values.map(v => encodeURIComponent(k) + '=' + v).join('&');
+  }).join('&');
+
 }
 
 export function buildCanonicalHeaders(headers) {

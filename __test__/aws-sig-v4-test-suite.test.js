@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import URL from 'url-parse';
+import { URL } from 'whatwg-url';
 import { Request, Headers } from 'node-fetch';
 import { hmac, hexEncode } from '../src/crypto';
 import {
@@ -21,10 +21,11 @@ const aws = {
   accessKey: 'AKIDEXAMPLE'
 };
 
-const testSuite = path.join(__dirname, './aws-sig-v4-test-suite');
+const awsTestSuiteDir = path.join(__dirname, './aws-sig-v4-test-suite');
 
 describe('aws-sig-v4-test-suite', () => {
   execTest('get-header-key-duplicate');
+  // XXX Headers does not support multiline header values
   //execTest('get-header-value-multiline');
   execTest('get-header-value-order');
   execTest('get-header-value-trim');
@@ -32,17 +33,34 @@ describe('aws-sig-v4-test-suite', () => {
   execTest('get-utf8');
   execTest('get-vanilla-empty-query-key');
   execTest('get-vanilla-query-order-key-case');
-  //execTest('get-vanilla-query-order-key');
-  //execTest('get-vanilla-query-order-value');
+  execTest('get-vanilla-query-order-key');
+  execTest('get-vanilla-query-order-value');
   execTest('get-vanilla-query-unreserved');
   execTest('get-vanilla-query');
   execTest('get-vanilla-utf8-query');
   execTest('get-vanilla');
-  //execTest('normalize-path/get-relative-relative');
+
+  describe('normalize-path', () => {
+    const npTestSuiteDir = path.join(awsTestSuiteDir, 'normalize-path');
+    execTest('get-relative-relative', npTestSuiteDir);
+    execTest('get-relative', npTestSuiteDir);
+    execTest('get-slash-dot-slash', npTestSuiteDir);
+    execTest('get-slash-pointless-dot', npTestSuiteDir);
+    execTest('get-slash', npTestSuiteDir);
+    execTest('get-slashes', npTestSuiteDir);
+    execTest('get-space', npTestSuiteDir);
+  });
+
   execTest('post-header-key-case');
   execTest('post-header-key-sort');
   execTest('post-header-value-case');
-  //execTest('post-sts-token');
+
+  describe('post-sts-token', () => {
+    const pststTestSuiteDir = path.join(awsTestSuiteDir, 'post-sts-token');
+    execTest('post-sts-header-after', pststTestSuiteDir);
+    execTest('post-sts-header-before', pststTestSuiteDir);
+  });
+
   execTest('post-vanilla-empty-query-value');
   execTest('post-vanilla-query');
   execTest('post-vanilla');
@@ -50,19 +68,23 @@ describe('aws-sig-v4-test-suite', () => {
   execTest('post-x-www-form-urlencoded');
 });
 
-function execTest(testName) {
+function execTest(testName, testSuiteDir = awsTestSuiteDir) {
   function loadTestFile(ext) {
     return fs.readFileSync(
-      path.join(testSuite, testName, testName + '.' + ext),
+      path.join(testSuiteDir, testName, testName + '.' + ext),
       'utf8'
     );
   }
 
   function parseRequest() {
     const [headerData, body] = loadTestFile('req').split('\n\n');
-    const headerDataItems = headerData.split('\n');
+    const headerDataItems = headerData.split(/\n(?!\s)/);
 
-    const [method, pathname] = headerDataItems.shift().split(' ');
+    // cut of " HTTP/1.1"
+    const topHeader = headerDataItems.shift().slice(0, -9);
+    const idx = topHeader.indexOf(' ');
+    const method = topHeader.substring(0, idx);
+    const pathname = topHeader.substring(idx + 1);
 
     const headers = new Headers();
     for (const header of headerDataItems) {
@@ -88,9 +110,14 @@ function execTest(testName) {
 
     test('creq', async () => {
       // act
-      const cReq = await buildCanonicalRequest(req, new URL(url, true));
+      const cReq = await buildCanonicalRequest(req, new URL(url));
 
       // assert
+      // TODO: remove
+      //if (testName == 'get-space') {
+      //  fs.writeFileSync('/tmp/creq', cReq, 'ascii');
+      //  console.log('----> written');
+      //}
       expect(cReq).toEqual(expectedCReq);
     });
 

@@ -1,10 +1,10 @@
 import fetch, { Request } from 'node-fetch';
-import URL from 'url-parse';
+import { URL } from 'whatwg-url';
 import { signRequestV4 } from './sigv4';
 
 export default async function awsFetch(input, init, aws) {
   const req = new Request(input, init);
-  const url = new URL(req.url, true);
+  const url = new URL(req);
 
   const datetime = getDateTime();
   req.headers.set('X-Amz-Date', datetime);

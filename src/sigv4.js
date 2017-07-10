@@ -7,8 +7,8 @@ import {
 const AWS4_REQUEST = 'aws4_request';
 const AWS_SHA_256 = 'AWS4-HMAC-SHA256';
 
-export async function signRequestV4(req, url, datetime, aws) {
-  const canonicalRequest = await buildCanonicalRequest(req, url);
+export async function signRequestV4(req, datetime, aws) {
+  const canonicalRequest = await buildCanonicalRequest(req);
   const credentialScope = buildCredentialScope(datetime, aws);
   const stringToSign = buildStringToSign(
     datetime, credentialScope, canonicalRequest, aws
