@@ -26,7 +26,7 @@ const awsTestSuiteDir = path.join(__dirname, './aws-sig-v4-test-suite');
 
 describe('aws-sig-v4-test-suite', () => {
   execTest('get-header-key-duplicate');
-  // XXX Headers does not support multiline header values
+  // XXX Headers does not support multiline header values?
   //execTest('get-header-value-multiline');
   execTest('get-header-value-order');
   execTest('get-header-value-trim');
@@ -128,11 +128,6 @@ function execTest(testName, testSuiteDir = awsTestSuiteDir) {
       const cReq = await buildCanonicalRequest(req, new URL(url));
 
       // assert
-      // TODO: remove
-      //if (testName == 'get-space') {
-      //  fs.writeFileSync('/tmp/creq', cReq, 'ascii');
-      //  console.log('----> written');
-      //}
       expect(cReq).toEqual(expectedCReq);
     });
 
