@@ -1,4 +1,5 @@
 import babel from 'rollup-plugin-babel';
+import builtins from 'rollup-plugin-node-builtins';
 import commonjs from 'rollup-plugin-commonjs';
 import resolve from 'rollup-plugin-node-resolve';
 
@@ -18,8 +19,10 @@ export default {
             modules: false
           }
         }]
-      ]
+      ],
+      plugins: ['external-helpers']
     }),
+    builtins(),
     commonjs({
       namedExports: {
         'node_modules/crypto-js/enc-hex.js': [ 'Hex' ],
