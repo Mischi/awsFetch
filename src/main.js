@@ -4,7 +4,7 @@ import { signRequestV4 } from './sigv4';
 
 export default async function awsFetch(input, init, aws) {
   const req = new Request(input, init);
-  const url = new URL(req);
+  const url = new URL(req.url);
 
   const datetime = getDateTime();
   req.headers.set('X-Amz-Date', datetime);

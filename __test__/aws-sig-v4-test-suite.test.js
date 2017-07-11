@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { URL } from 'whatwg-url';
-import { Request, Headers } from 'node-fetch';
+import fetch, { Request, Headers } from 'node-fetch';
 import { hmac, hexEncode } from '../src/crypto';
 import {
   buildCanonicalRequest,
@@ -11,6 +11,7 @@ import {
   buildAuthorizationHeader,
   calculateSigningKey
 } from '../src/sigv4.js';
+import awsFetch from '../src/main';
 
 const datetime = '20150830T123600Z';
 const credentialScope = '20150830/us-east-1/service/aws4_request';
@@ -18,7 +19,7 @@ const aws = {
   region: 'us-east-1',
   service: 'service',
   secretKey: 'wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY',
-  accessKey: 'AKIDEXAMPLE'
+  accessKey: 'AKIDEXAMPLE',
 };
 
 const awsTestSuiteDir = path.join(__dirname, './aws-sig-v4-test-suite');
@@ -56,6 +57,14 @@ describe('aws-sig-v4-test-suite', () => {
   execTest('post-header-value-case');
 
   describe('post-sts-token', () => {
+    beforeAll(() => {
+      aws.sessionToken = 'AQoDYXdzEPT//////////wEXAMPLEtc764bNrC9SAPBSM22wDOk4x4HIZ8j4FZTwdQWLWsKWHGBuFqwAeMicRXmxfpSPfIeoIYRqTflfKD8YUuwthAx7mSEI/qkPpKPi/kMcGdQrmGdeehM4IC1NtBmUpp2wUE8phUZampKsburEDy0KPkyQDYwT7WZ0wq5VSXDvp75YU9HFvlRd8Tx6q6fE8YQcHNVXAkiY9q6d+xo0rKwT38xVqr7ZD0u0iPPkUL64lIZbqBAz+scqKmlzm8FDrypNC9Yjc8fPOLn9FX9KSYvKTr4rvx3iSIlTJabIQwj2ICCR/oLxBA==';
+    })
+
+    afterAll(() => {
+      delete aws.sessionToken;
+    });
+
     const pststTestSuiteDir = path.join(awsTestSuiteDir, 'post-sts-token');
     execTest('post-sts-header-after', pststTestSuiteDir);
     execTest('post-sts-header-before', pststTestSuiteDir);
@@ -76,8 +85,8 @@ function execTest(testName, testSuiteDir = awsTestSuiteDir) {
     );
   }
 
-  function parseRequest() {
-    const [headerData, body] = loadTestFile('req').split('\n\n');
+  function parseRequest(testFileExt) {
+    const [headerData, body] = loadTestFile(testFileExt).split('\n\n');
     const headerDataItems = headerData.split(/\n(?!\s)/);
 
     // cut of " HTTP/1.1"
@@ -88,11 +97,11 @@ function execTest(testName, testSuiteDir = awsTestSuiteDir) {
 
     const headers = new Headers();
     for (const header of headerDataItems) {
-      if (header == '\n')
+      if (header == '' || header == '\n')
         break;
 
       const [name, val] = header.split(':');
-      headers.append(name, val);
+      headers.append(name, val.trim());
     }
 
     const url = `https://${headers.get('Host')}${pathname}`;
@@ -102,11 +111,17 @@ function execTest(testName, testSuiteDir = awsTestSuiteDir) {
   }
 
   describe(testName, () => {
-    const { req, url } = parseRequest();
-
     const expectedCReq = loadTestFile('creq');
-    const expectedSts =  loadTestFile('sts');
+    const expectedSts = loadTestFile('sts');
     const expectedAuthz = loadTestFile('authz');
+    let req, url;
+
+    beforeEach(() => {
+      jest.resetAllMocks();
+      let parsedReq = parseRequest('req');
+      req = parsedReq.req;
+      url = parsedReq.url;
+    });
 
     test('creq', async () => {
       // act
@@ -143,6 +158,40 @@ function execTest(testName, testSuiteDir = awsTestSuiteDir) {
 
       // assert
       expect(auth).toEqual(expectedAuthz);
+    });
+
+    test('full', async () => {
+      // arrange
+      Date.prototype.toISOString = jest.fn();
+      Date.prototype.toISOString.mockReturnValueOnce(
+        '2015-08-30T12:36:00.691Z'
+      );
+
+      // act
+      await awsFetch(req, {}, aws);
+
+      // assert
+      const currentReq = fetch.mock.calls[0][0];
+
+      const expectedReq = parseRequest('sreq').req;
+      expect(currentReq.method).toEqual(expectedReq.method);
+      expect(currentReq.url).toEqual(expectedReq.url);
+      expect(currentReq.body).toEqual(expectedReq.body);
+
+
+      const currentUniqueKeys = [
+        ...new Set(currentReq.headers.keys())
+      ];
+      const expectedUniqueKeys = [
+        ...new Set(expectedReq.headers.keys())
+      ];
+
+      expect(expectedUniqueKeys).toEqual(currentUniqueKeys);
+      for (const expectedKey of expectedUniqueKeys) {
+        const expectedValue = expectedReq.headers.get(expectedKey);
+        const currentValue = currentReq.headers.get(expectedKey);
+        expect(currentValue).toEqual(expectedValue);
+      }
     });
   });
 }
